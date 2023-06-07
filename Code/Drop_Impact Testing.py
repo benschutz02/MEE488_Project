@@ -1,8 +1,13 @@
 from PyQt5.QtWidgets import *
 import sys
+import serial
 
 
-# generic setup
+# arduino setup
+ports = serial.tools.list_ports.comports()
+print(ports)
+
+# app setup
 app = QApplication(sys.argv)
 dlayout = QGridLayout()
 ilayout = QGridLayout()
