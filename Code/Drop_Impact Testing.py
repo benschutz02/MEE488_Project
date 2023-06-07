@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import *
 import sys
 import serial
-
+import serial.tools.list_ports
 
 # arduino setup
 ports = serial.tools.list_ports.comports()
