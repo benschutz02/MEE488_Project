@@ -1,4 +1,3 @@
-# MEE488_Project
-We should write out an official readme at some point. It'd describe the problem, the project, and what it should look like fully assembled. It can have pictures, gifs (haven't done it but I've seen it done), whatever you want really.
-
-It's also very good for job applications (when you can link websites, you have a whole professional looking site with files they can see you made)!
+# Drop and Impact Testing Rig
+Manufacturers of smartphones and tablets must assess and quantify the durability of their product before releasing it to market. Consumers expect their electronic devices to withstand daily wear and tear. If this expectation is not met, the manufacturer’s reputation can be damaged, incurring financial losses. Similarly, manufacturers of protective cases and screens must also validate that their product offering performs to an acceptable level or face economic consequences. 
+Two common methods used to assess durability are drop tests and impact tests. A drop test simulates a free fall from a specified height and records the forces experienced by the test specimen upon landing. An impact test simulates the effect of being struck by an external object and records the forces experienced by the test specimen. A qualitative visual inspection may follow both types of tests.
