@@ -2,10 +2,8 @@ from PyQt5.QtWidgets import *
 import sys
 import serial
 import serial.tools.list_ports
+import time
 
-# arduino setup
-ports = serial.tools.list_ports.comports()
-print(ports)
 
 # app setup
 app = QApplication(sys.argv)
@@ -18,8 +16,34 @@ title = 'Drop/Impact Testing'  # app title
 
 reset1 = QPushButton('Reset')  # reset for drop
 reset2 = QPushButton('Reset')  # reset for impact
+time.sleep(0.5)
+
 
 ## FUNCTIONS ##
+def write_read(x):
+    # start time
+    start = time.time()
+
+    # arduino setup
+    ports = [comport.device for comport in serial.tools.list_ports.comports()]
+
+    # connect to port
+    arduino = serial.Serial(port=ports[0], baudrate=9600, timeout=1)
+
+    # convert to string
+    val = str(x)
+
+    # write, then receive data
+    arduino.write(val.encode('utf-8'))
+    data = arduino.readline().decode()
+    arduino.close()
+
+    # calculate runtime
+    end = time.time()
+    runtime = end - start
+
+    return data, runtime
+
 def unitsChanged2():
     global u_text,uval2,hval2,fval,sval2
 
@@ -50,39 +74,56 @@ def resetPressed():
 def resetPressed2():
     global sval2
     # start time
-
+    start = time.time()
     # set height to 3 ft, zero force
 
     # open drop arms
 
     # calculate time to complete
+    end = time.time()
+    runtime = end-start
 
     # update status
-    sval2.append('System Reset')
+    sval2.append(f'System Reset ({runtime:.2}s)')
 
 def releasePressed():
-    global sval
+    global sval,dval
+
+    data, runtime = write_read(2)
 
     # update status
-    sval.append(f'{dval.currentText()} Released (00s)')
+    sval.append(f'{dval.currentText()} Released ({runtime:.3}s)')
+    return data
 
 def releasePressed2():
-    global sval2,fval,u_text
+    global sval2,fval
+
+    data, runtime = write_read(2)
 
     # update status
-    sval2.append(f'{fval.value()}{fval.suffix()} Carriage Released (00s)')
+    sval2.append(f'{fval.value()}{fval.suffix()} Carriage Released ({runtime:.3}s)')
+    return data
 
 def raisePressed():
     global sval
 
+    data, runtime = write_read(1)
+
     # update status
-    sval.append('Carriage Raised to Drop Height')
+    print(data)
+    sval.append(f'Raising Carriage to Drop Height ({runtime:.3}s)')
+    return data
 
 def raisePressed2():
     global sval2
 
+    data, runtime = write_read(1)
+
     # update status
-    sval2.append('Carriage Raised to Drop Height')
+    print(data)
+    sval2.append(f'Raising Carriage to Drop Height ({runtime:.3}s)')
+    return data
+
 
 ## DROP TESTING TAB ##
 drop = QGroupBox()
