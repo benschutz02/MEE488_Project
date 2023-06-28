@@ -58,52 +58,6 @@ def unitsChanged2():
     # update Status
     sval2.append(f'Units Set ({value})')
 
-def resetPressed():
-    global sval
-    # start time
-
-    # set height to 4 ft
-
-    # open drop arms
-
-    # calculate time to complete
-
-    # update status
-    sval.append('System Reset')
-
-def resetPressed2():
-    global sval2
-    # start time
-    start = time.time()
-    # set height to 3 ft, zero force
-
-    # open drop arms
-
-    # calculate time to complete
-    end = time.time()
-    runtime = end-start
-
-    # update status
-    sval2.append(f'System Reset ({runtime:.2}s)')
-
-def releasePressed():
-    global sval,dval
-
-    data, runtime = write_read(2)
-
-    # update status
-    sval.append(f'{dval.currentText()} Released ({runtime:.3}s)')
-    return data
-
-def releasePressed2():
-    global sval2,fval
-
-    data, runtime = write_read(2)
-
-    # update status
-    sval2.append(f'{fval.value()}{fval.suffix()} Carriage Released ({runtime:.3}s)')
-    return data
-
 def raisePressed():
     global sval
 
@@ -123,6 +77,74 @@ def raisePressed2():
     print(data)
     sval2.append(f'Raising Carriage to Drop Height ({runtime:.3}s)')
     return data
+
+def releasePressed():
+    global sval,dval
+
+    data, runtime = write_read(2)
+
+    # update status
+    sval.append(f'{dval.currentText()} Released ({runtime:.3}s)')
+    return data
+
+def releasePressed2():
+    global sval2,fval
+
+    data, runtime = write_read(3)
+
+    # update status
+    sval2.append(f'{fval.value()}{fval.suffix()} Carriage Released ({runtime:.3}s)')
+    return data
+
+def itemSet():
+    global d_list,dval,sval
+
+    value = dval.currentText()
+
+    # set timing of actuators
+    data, run1 = write_read(4)  # item set call in arduino
+
+    # determine what device to send
+    if value == 'Phone':
+        x = 1
+    elif value == 'Tablet':
+        x = 2
+    elif value == 'Laptop':
+        x = 3
+
+    data2, run2 = write_read(x)
+
+    # calculate final runtime
+    runtime = run1 + run2
+
+    # update Status
+    sval.append(f'{value} Set ({runtime:.3}s)')
+
+def itemSet2():
+    global d_list, dval, sval
+
+    time.sleep(0.5)
+
+    # update Status
+    sval2.append('Impact Weight Set')
+
+
+def resetPressed():
+    global sval
+
+    data, runtime = write_read(5)
+
+    # update status
+    sval.append(f'System Reset ({runtime:.3}s)')
+
+
+def resetPressed2():
+    global sval2
+
+    data, runtime = write_read(5)
+
+    # update status
+    sval2.append(f'System Reset ({runtime:.3}s)')
 
 
 ## DROP TESTING TAB ##
@@ -278,6 +300,9 @@ release2.clicked.connect(releasePressed2)
 hval.clicked.connect(raisePressed)
 hval2.clicked.connect(raisePressed2)
 
+# attach and set buttons
+attach.clicked.connect(itemSet)
+set.clicked.connect(itemSet2)
 
 # make tabs, add title
 window = QTabWidget()
