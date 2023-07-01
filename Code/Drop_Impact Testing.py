@@ -29,7 +29,10 @@ def write_read(x):
     ports = [comport.device for comport in serial.tools.list_ports.comports()]
 
     # connect to port
-    arduino = serial.Serial(port=ports[0], baudrate=9600, timeout=1)
+    try:
+        arduino = serial.Serial(port=ports[0], baudrate=9600, timeout=1)
+    except IndexError:
+        return 'n/a',0.00000
 
     # convert to string
     val = str(x)
@@ -64,6 +67,10 @@ def raisePressed():
 
     data, runtime = write_read(1)
 
+    if data == 'n/a':
+        sval.append(f'System Not Connected. Reattach USB Cable')
+        return data
+
     # update status
     print(data)
     sval.append(f'Raising Carriage to Drop Height ({runtime:.3}s)')
@@ -73,6 +80,10 @@ def raisePressed2():
     global sval2
 
     data, runtime = write_read(1)
+
+    if data == 'n/a':
+        sval2.append(f'System Not Connected. Reattach USB Cable')
+        return data
 
     # update status
     print(data)
@@ -84,6 +95,10 @@ def releasePressed():
 
     data, runtime = write_read(2)
 
+    if data == 'n/a':
+        sval.append(f'System Not Connected. Reattach USB Cable')
+        return data
+
     # update status
     sval.append(f'{dval.currentText()} Released ({runtime:.3}s)')
     return data
@@ -92,6 +107,10 @@ def releasePressed2():
     global sval2,fval
 
     data, runtime = write_read(3)
+
+    if data == 'n/a':
+        sval2.append(f'System Not Connected. Reattach USB Cable')
+        return data
 
     # update status
     sval2.append(f'{fval.value()}{fval.suffix()} Carriage Released ({runtime:.3}s)')
@@ -104,6 +123,10 @@ def itemSet():
 
     # set timing of actuators
     data, run1 = write_read(4)  # item set call in arduino
+
+    if data == 'n/a':
+        sval.append(f'System Not Connected. Reattach USB Cable')
+        return data
 
     # determine what device to send
     if value == 'Phone':
@@ -134,8 +157,13 @@ def resetPressed():
     global sval
 
     data, runtime = write_read(1)
+
+    if data == 'n/a':
+        sval.append(f'System Not Connected. Reattach USB Cable')
+        return data
+
     data2, runtime2 = write_read(2)
-    
+
     # time to execute
     run = runtime + runtime2
 
@@ -147,11 +175,16 @@ def resetPressed2():
     global sval2
 
     data, runtime = write_read(5)
+
+    if data == 'n/a':
+        sval2.append(f'System Not Connected. Reattach USB Cable')
+        return data
+
     data2, runtime2 = write_read(1)
 
     # time to execute
     run = runtime + runtime2
-    
+
     # update status
     sval2.append(f'System Reset ({run:.3}s)')
 
