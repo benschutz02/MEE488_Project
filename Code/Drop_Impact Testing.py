@@ -5,6 +5,7 @@ import serial.tools.list_ports
 import time
 
 
+
 # app setup
 app = QApplication(sys.argv)
 dlayout = QGridLayout()
@@ -45,7 +46,7 @@ def write_read(x):
     return data, runtime
 
 def unitsChanged2():
-    global u_text,uval2,hval2,fval,sval2
+    global u_text,uval2,fval,sval2
 
     value = uval2.currentText()
 
@@ -132,19 +133,29 @@ def itemSet2():
 def resetPressed():
     global sval
 
-    data, runtime = write_read(5)
+    data, runtime = write_read(1)
+    data2, runtime2 = write_read(2)
+    
+    # time to execute
+    run = runtime + runtime2
 
     # update status
-    sval.append(f'System Reset ({runtime:.3}s)')
+    sval.append(f'System Reset ({run:.3}s)')
 
 
 def resetPressed2():
     global sval2
 
     data, runtime = write_read(5)
+    data2, runtime2 = write_read(1)
 
+    # time to execute
+    run = runtime + runtime2
+    
     # update status
-    sval2.append(f'System Reset ({runtime:.3}s)')
+    sval2.append(f'System Reset ({run:.3}s)')
+
+
 
 
 ## DROP TESTING TAB ##
@@ -303,6 +314,7 @@ hval2.clicked.connect(raisePressed2)
 # attach and set buttons
 attach.clicked.connect(itemSet)
 set.clicked.connect(itemSet2)
+
 
 # make tabs, add title
 window = QTabWidget()
