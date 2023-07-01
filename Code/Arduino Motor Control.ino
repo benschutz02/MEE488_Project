@@ -1,6 +1,6 @@
 // C++ code
 //
-
+# include <AccelStepper.h>
 
 int t = 500; // time (microseconds)
 bool actuator = LOW;
