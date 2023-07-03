@@ -71,32 +71,32 @@ void loop()
   // coupling/decoupling
   if(digitalRead(11) == HIGH & digitalRead(10) == LOW){
     // Retract linear actuator 
-    digitalWrite(50, HIGH);
-    digitalWrite(51, LOW);
+    digitalWrite(couple1, HIGH);
+    digitalWrite(couple2, LOW);
   }else if(digitalRead(10) == HIGH & digitalRead(11) == LOW){
     // Extend linear actuator 
-    digitalWrite(50, LOW);
-    digitalWrite(51, HIGH);
+    digitalWrite(couple1, LOW);
+    digitalWrite(couple2, HIGH);
   }else{
     // Stops linear actuator
-    digitalWrite(50, HIGH);
-    digitalWrite(51, HIGH);
+    digitalWrite(couple1, HIGH);
+    digitalWrite(couple2, HIGH);
   }
 
   // carriage
   // coupling/decoupling
   if(digitalRead(8) == HIGH & digitalRead(9) == LOW){
     // Retract linear actuator 
-    digitalWrite(50, HIGH);
-    digitalWrite(51, LOW);
+    digitalWrite(carriage1, HIGH);
+    digitalWrite(carriage2, LOW);
   }else if(digitalRead(9) == HIGH & digitalRead(8) == LOW){
     // Extend linear actuator 
-    digitalWrite(50, LOW);
-    digitalWrite(51, HIGH);
+    digitalWrite(carriage1, LOW);
+    digitalWrite(carriage2, HIGH);
   }else{
     // Stops linear actuator
-    digitalWrite(50, HIGH);
-    digitalWrite(51, HIGH);
+    digitalWrite(carriage1, HIGH);
+    digitalWrite(carriage2, HIGH);
   }
 
 
@@ -135,7 +135,7 @@ void loop()
     }
 
     stepper.setSpeed(250);
-    while(i<200){ // change the 'while' to whatever the switch pin is
+    while(i<201){ // change the 'while' to whatever the switch pin is
       stepper.runSpeed();   
       i++;         
     }
@@ -146,15 +146,15 @@ void loop()
     x = "Device Release";
 
     // Retract linear actuators 
-    digitalWrite(40, HIGH);
-    digitalWrite(41, LOW);
+    digitalWrite(carriage1, HIGH);
+    digitalWrite(carriage2, LOW);
 
   }else if (val == '3'){
     x = "Carriage Release";
 
     // Retract linear actuator 
-    digitalWrite(50, HIGH);
-    digitalWrite(51, LOW);
+    digitalWrite(couple1, HIGH);
+    digitalWrite(couple2, LOW);
 
   }else if (val == '4'){
     x = "Item Set";
@@ -177,13 +177,13 @@ void loop()
     unsigned long start = millis();
 
     // Extend linear actuators 
-    digitalWrite(40, LOW);
-    digitalWrite(41, HIGH);
+    digitalWrite(carriage1), LOW);
+    digitalWrite(carriage2, HIGH);
 
     // Stop linear actuators when they reach specific time
     while (!start-millis() == time);
-    digitalWrite(40, HIGH);
-    digitalWrite(41, HIGH);
+    digitalWrite(carriage1, HIGH);
+    digitalWrite(carriage2, HIGH);
 
   }else if (val == '5'){
     x = "Recouple";
@@ -191,12 +191,18 @@ void loop()
     // Extend linear actuator, slowly turn wheel
     unsigned long start = millis();
 
-    digitalWrite(50, LOW);
-    digitalWrite(51, HIGH); 
+    digitalWrite(couple1, LOW);
+    digitalWrite(couple2, HIGH); 
 
     stepper.setSpeed(100);
     stepper.runSpeed();    
 
+    // spin for awhile, then stop
+    while(millis()-start < 1000);
+    stepper.setSpeed(0);
+    stepper.runSpeed();
+
+    digitalWrite()
   }
   
   Serial.println(x);
