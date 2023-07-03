@@ -2,10 +2,13 @@
 //
 # include <AccelStepper.h>
 
-int t = 500; // time (microseconds)
-bool actuator = LOW;
-String x;
+AccelStepper stepper; // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
+String x; // string to communicate w python
 
+// timing for carriage open/close (in milliseconds)
+const unsigned long phone = 1000;
+const unsigned long tablet = 100;
+const unsigned long laptop = 50;
 
 
 void setup()
@@ -18,86 +21,178 @@ void setup()
   pinMode(7,OUTPUT);
   
   // linear actuator pins
-  pinMode(3,OUTPUT); // carriage arms
-  pinMode(4,OUTPUT); // stepper motor
-  
+  pinMode(40, OUTPUT);
+  pinMode(41, OUTPUT); 
+  pinMode(9, INPUT_PULLUP); // Input for Button 1
+  pinMode(10,INPUT_PULLUP); // Input for Button 2
+
+  // stop switch
+  pinMode(20,OUTPUT);
+
+  // coupling/decoupling system
+  pinMode(50, OUTPUT);
+  pinMode(51, OUTPUT); 
+  pinMode(13, INPUT_PULLUP); // Input for Button 1
+  pinMode(12,INPUT_PULLUP); // Input for Button 2
+  digitalWrite(50, HIGH); // Initialize pin 50 as HIGH
+  digitalWrite(51, HIGH); // Initialize pin 51 as HIGH
+
+  // stepper motor
+  stepper.setMaxSpeed(4000);
+  stepper.setSpeed(0);
+  pinMode(13, INPUT_PULLUP); // Input for Raise Button
+  pinMode(12, INPUT_PULLUP); // Input for Lower Button 
+
   // begin serial output
   Serial.begin(9600);
 }
 
 void loop()
 {
-  val = 0;
+  char val = '0';
+  int i = 0;
 
+
+  /* MANUAL OVERRIDES */
+
+  // stepper motor
+  if(digitalRead(13) == LOW){
+   stepper.setSpeed(500);
+   stepper.runSpeed();
+  }
+  else if(digitalRead(12) == LOW){
+   stepper.setSpeed(-500);
+   stepper.runSpeed();
+  }
+
+  // coupling/decoupling
+  if(digitalRead(13) == HIGH & digitalRead(12) == LOW){
+    // Retract linear actuator 
+    digitalWrite(50, HIGH);
+    digitalWrite(51, LOW);
+  }else if(digitalRead(12) == HIGH & digitalRead(13) == LOW){
+    // Extend linear actuator 
+    digitalWrite(50, LOW);
+    digitalWrite(51, HIGH);
+  }else{
+    // Stops linear actuator
+    digitalWrite(50, HIGH);
+    digitalWrite(51, HIGH);
+  }
+
+  // carriage
+  // coupling/decoupling
+  if(digitalRead(10) == HIGH & digitalRead(9) == LOW){
+    // Retract linear actuator 
+    digitalWrite(50, HIGH);
+    digitalWrite(51, LOW);
+  }else if(digitalRead(9) == HIGH & digitalRead(10) == LOW){
+    // Extend linear actuator 
+    digitalWrite(50, LOW);
+    digitalWrite(51, HIGH);
+  }else{
+    // Stops linear actuator
+    digitalWrite(50, HIGH);
+    digitalWrite(51, HIGH);
+  }
+
+
+
+
+  /* APP SENDS */
   // check if something is writing, give visual confirmation if read
-  while (!Serial.available() > 0);
-  char val = Serial.read();
+  if(!Serial.available() > 0){
+    char val = Serial.read();
 
-  digitalWrite(LED_BUILTIN,HIGH);
-  delay(100);
-  digitalWrite(LED_BUILTIN,LOW);
+    digitalWrite(LED_BUILTIN,HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN,LOW);
+  }
   
   // decide if carriage goes up, down, or gets released
   // Raise = 1, Release Actuators = 2, Release Carriage = 3, Item Hold Actuators = 4
-  // Reset System = 5
+  // Recouple System = 5
 
   // carry out functions
   if(val == '1'){
     x = "Raise";
     
     // raise until you hit the switch
-    digitalWrite(6,HIGH);
-    while (i < 1000; i++){ // change the 'while' to whatever the switch pin is
-    	digitalWrite(7,HIGH);
-    	delayMicroseconds(t);
-  		digitalWrite(7,LOW);
-  		delayMicroseconds(t);
+    stepper.setSpeed(500);
+    while (i < 1000){ // change the 'while' to whatever the switch pin is
+      stepper.runSpeed();
+      i++;
     }
-
 
     // drop a lil bit, then raise again slowly
-    digitalWrite(6,LOW);
+    stepper.setSpeed(-500); 
     for (int i = 0;i<200;i++){
-    	digitalWrite(7,HIGH);
-    	delayMicroseconds(t);
-  		digitalWrite(7,LOW);
-  		delayMicroseconds(t);
+      stepper.runSpeed();
+      i++;      
     }
 
-    digitalWrite(6,HIGH);
-    while (i < 1000; i++){ // change the 'while' to whatever the switch pin is
-    	digitalWrite(7,HIGH);
-    	delayMicroseconds(2*t);
-  		digitalWrite(7,LOW);
-  		delayMicroseconds(2*t);
-    }    
+    stepper.setSpeed(250);
+    while(i<200){ // change the 'while' to whatever the switch pin is
+      stepper.runSpeed();   
+      i++;         
+    }
+    stepper.setSpeed(0);
+    stepper.runSpeed();
 
   }else if (val == '2'){
     x = "Device Release";
 
-    digitalWrite(3,HIGH);
+    // Retract linear actuators 
+    digitalWrite(40, HIGH);
+    digitalWrite(41, LOW);
 
   }else if (val == '3'){
     x = "Carriage Release";
 
-    digitalWrite(4,HIGH);
+    // Retract linear actuator 
+    digitalWrite(50, HIGH);
+    digitalWrite(51, LOW);
 
   }else if (val == '4'){
     x = "Item Set";
 
-    // send confirmation
+    unsigned long time;
 
     // check which item it is
+    switch(Serial.parseInt()){
+      case 1:
+      time = phone;
+
+      case 2:
+      time = tablet;
+
+      case 3:
+      time = laptop;
+    }
 
     // move actuators to the time they need
+    unsigned long start = millis();
+
+    // Extend linear actuators 
+    digitalWrite(40, LOW);
+    digitalWrite(41, HIGH);
+
+    // Stop linear actuators when they reach specific time
+    while (!start-millis() == time);
+    digitalWrite(40, HIGH);
+    digitalWrite(41, HIGH);
 
   }else if (val == '5'){
-    x = "Reset";
+    x = "Recouple";
 
-    // Open carriage arms
-    // check if recoupled (recouple if not)
-    // raise to drop height
-    
+    // Extend linear actuator, slowly turn wheel
+    unsigned long start = millis();
+
+    digitalWrite(50, LOW);
+    digitalWrite(51, HIGH); 
+
+    stepper.setSpeed(100);
+    stepper.runSpeed();    
 
   }
   
