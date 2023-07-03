@@ -1,366 +1,203 @@
-from PyQt5.QtWidgets import *
-import sys
-import serial
-import serial.tools.list_ports
-import time
+// C++ code
+//
+# include <AccelStepper.h>
+
+AccelStepper stepper; // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
+String x; // string to communicate w python
+
+// timing for carriage open/close (in milliseconds)
+const unsigned long phone = 1000;
+const unsigned long tablet = 100;
+const unsigned long laptop = 50;
+
+// pins on arduino
+int couple1 = 51;
+int couple2 = 53;
+
+int carriage1 = 41;
+int carriage2 = 43;
+
+int stop = 20;
+
+void setup()
+{
+  //Built in LED
+  pinMode(LED_BUILTIN,OUTPUT);
+  
+  // carriage actuator pins
+  pinMode(carriage1, OUTPUT);
+  pinMode(carriage2, OUTPUT); 
+  pinMode(9, INPUT_PULLUP); // Input for extend
+  pinMode(8,INPUT_PULLUP); // Input for retract
+
+  // stop switch
+  pinMode(stop,OUTPUT);
+
+  // coupling/decoupling system
+  pinMode(couple1, OUTPUT);
+  pinMode(couple2, OUTPUT); 
+  pinMode(11, INPUT_PULLUP); // Input for couple
+  pinMode(10,INPUT_PULLUP); // Input for decouple
+  digitalWrite(couple1, HIGH); // Initialize pin 50 as HIGH
+  digitalWrite(couple2, HIGH); // Initialize pin 51 as HIGH
+
+  // stepper motor
+  stepper.setMaxSpeed(4000);
+  stepper.setSpeed(0);
+  pinMode(13, INPUT_PULLUP); // Input for Raise Button
+  pinMode(12, INPUT_PULLUP); // Input for Lower Button 
+
+  // begin serial output
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  char val = '0';
+  int i = 0;
+
+  /* MANUAL OVERRIDES */
+
+  // stepper motor
+  if(digitalRead(13) == LOW){
+   stepper.setSpeed(500);
+   stepper.runSpeed();
+  }
+  else if(digitalRead(12) == LOW){
+   stepper.setSpeed(-500);
+   stepper.runSpeed();
+  }
+
+  // coupling/decoupling
+  if(digitalRead(11) == HIGH & digitalRead(10) == LOW){
+    // Retract linear actuator 
+    digitalWrite(50, HIGH);
+    digitalWrite(51, LOW);
+  }else if(digitalRead(10) == HIGH & digitalRead(11) == LOW){
+    // Extend linear actuator 
+    digitalWrite(50, LOW);
+    digitalWrite(51, HIGH);
+  }else{
+    // Stops linear actuator
+    digitalWrite(50, HIGH);
+    digitalWrite(51, HIGH);
+  }
+
+  // carriage
+  // coupling/decoupling
+  if(digitalRead(8) == HIGH & digitalRead(9) == LOW){
+    // Retract linear actuator 
+    digitalWrite(50, HIGH);
+    digitalWrite(51, LOW);
+  }else if(digitalRead(9) == HIGH & digitalRead(8) == LOW){
+    // Extend linear actuator 
+    digitalWrite(50, LOW);
+    digitalWrite(51, HIGH);
+  }else{
+    // Stops linear actuator
+    digitalWrite(50, HIGH);
+    digitalWrite(51, HIGH);
+  }
+
 
 
 
-# app setup
-app = QApplication(sys.argv)
-dlayout = QGridLayout()
-ilayout = QGridLayout()
-
-u_text = ['lbs','kg']  # units for force
-d_list = ['Phone','Tablet','Laptop']  # device list
-title = 'Drop/Impact Testing'  # app title
-
-reset1 = QPushButton('Reset')  # reset for drop
-reset2 = QPushButton('Reset')  # reset for impact
-time.sleep(0.5)
-
-
-## FUNCTIONS ##
-def write_read(x):
-    # start time
-    start = time.time()
-
-    # arduino setup
-    ports = [comport.device for comport in serial.tools.list_ports.comports()]
-
-    # connect to port
-    try:
-        arduino = serial.Serial(port=ports[0], baudrate=9600, timeout=1)
-    except IndexError:
-        return 'n/a',0.00000
-
-    # convert to string
-    val = str(x)
-
-    # write, then receive data
-    arduino.write(val.encode('utf-8'))
-    data = arduino.readline().decode()
-    arduino.close()
-
-    # calculate runtime
-    end = time.time()
-    runtime = end - start
-
-    return data, runtime
-
-def unitsChanged2():
-    global u_text,uval2,fval,sval2
-
-    value = uval2.currentText()
-
-    if value == 'Imperial':
-        fval.setSuffix(f' {u_text[0]}')
-    else:
-        fval.setSuffix(f' {u_text[1]}')
-
-
-    # update Status
-    sval2.append(f'Units Set ({value})')
-
-def raisePressed():
-    global sval
-
-    data, runtime = write_read(1)
-
-    if data == 'n/a':
-        sval.append(f'System Not Connected. Reattach USB Cable')
-        return data
-
-    # update status
-    print(data)
-    sval.append(f'Raising Carriage to Drop Height ({runtime:.3}s)')
-    return data
-
-def raisePressed2():
-    global sval2
-
-    data, runtime = write_read(1)
-
-    if data == 'n/a':
-        sval2.append(f'System Not Connected. Reattach USB Cable')
-        return data
-
-    # update status
-    print(data)
-    sval2.append(f'Raising Carriage to Drop Height ({runtime:.3}s)')
-    return data
-
-def releasePressed():
-    global sval,dval
-
-    data, runtime = write_read(2)
-
-    if data == 'n/a':
-        sval.append(f'System Not Connected. Reattach USB Cable')
-        return data
-
-    # update status
-    sval.append(f'{dval.currentText()} Released ({runtime:.3}s)')
-    return data
-
-def releasePressed2():
-    global sval2,fval
-
-    data, runtime = write_read(3)
-
-    if data == 'n/a':
-        sval2.append(f'System Not Connected. Reattach USB Cable')
-        return data
-
-    # update status
-    sval2.append(f'{fval.value()}{fval.suffix()} Carriage Released ({runtime:.3}s)')
-    return data
-
-def itemSet():
-    global d_list,dval,sval
-
-    value = dval.currentText()
-
-    # set timing of actuators
-    data, run1 = write_read(4)  # item set call in arduino
-
-    if data == 'n/a':
-        sval.append(f'System Not Connected. Reattach USB Cable')
-        return data
-
-    # determine what device to send
-    if value == 'Phone':
-        x = 1
-    elif value == 'Tablet':
-        x = 2
-    elif value == 'Laptop':
-        x = 3
-
-    data2, run2 = write_read(x)
-
-    # calculate final runtime
-    runtime = run1 + run2
-
-    # update Status
-    sval.append(f'{value} Set ({runtime:.3}s)')
-
-def itemSet2():
-    global d_list, dval, sval
-
-    time.sleep(0.5)
-
-    # update Status
-    sval2.append('Impact Weight Set')
-
-
-def resetPressed():
-    global sval
-
-    data, runtime = write_read(1)
-
-    if data == 'n/a':
-        sval.append(f'System Not Connected. Reattach USB Cable')
-        return data
-
-    data2, runtime2 = write_read(2)
-
-    # time to execute
-    run = runtime + runtime2
-
-    # update status
-    sval.append(f'System Reset ({run:.3}s)')
-
-
-def resetPressed2():
-    global sval2
-
-    data, runtime = write_read(5)
-
-    if data == 'n/a':
-        sval2.append(f'System Not Connected. Reattach USB Cable')
-        return data
-
-    data2, runtime2 = write_read(1)
-
-    # time to execute
-    run = runtime + runtime2
-
-    # update status
-    sval2.append(f'System Reset ({run:.3}s)')
-
-
-
-
-## DROP TESTING TAB ##
-drop = QGroupBox()
-
-# make height box, widget, then add to box
-height = QGroupBox('Height:')
-lay = QVBoxLayout()
-
-hval = QPushButton('Raise')
-
-lay.addWidget(hval)
-height.setLayout(lay)
-
-
-# make device list, widget, and add to box
-device = QGroupBox('Device:')
-lay = QHBoxLayout()
-
-dval = QComboBox()
-dval.addItems(d_list)
-
-attach = QPushButton('Attach')
-
-lay.addWidget(dval)
-lay.addWidget(attach)
-device.setLayout(lay)
-
-
-# status section
-status = QGroupBox('Status')
-lay = QVBoxLayout()
-
-sval = QTextEdit()
-sval.setReadOnly(True)
-
-#### STATUS UPDATES ####
-sval.append('System Initialized')
-#### STATUS UPDATES ####
-
-
-lay.addWidget(sval)
-status.setLayout(lay)
-
-# last buttons
-release = QPushButton("Release")
-
-
-
-
-## IMPACT TESTING TAB ##
-impact = QGroupBox()
-
-# using mostly the same things as drop, but trading force for device
-force = QGroupBox('Weight:')
-lay = QHBoxLayout()
-
-fval = QDoubleSpinBox()
-fval.setSingleStep(1)
-fval.setRange(0,1000)
-fval.setSuffix(f' {u_text[0]}')
-
-set = QPushButton('Set')
-
-lay.addWidget(fval)
-lay.addWidget(set)
-
-force.setLayout(lay)
-
-# make height box, widget, then add to box
-height2 = QGroupBox('Height:')
-lay = QVBoxLayout()
-
-hval2 = QPushButton('Raise')
-
-lay.addWidget(hval2)
-height2.setLayout(lay)
-
-
-# make unit list, widget, add to box
-units2 = QGroupBox('Units:')
-lay = QVBoxLayout()
-
-uval2 = QComboBox()
-uval2.addItems(['Imperial','Metric'])
-
-lay.addWidget(uval2)
-units2.setLayout(lay)
-
-
-# status section
-status2 = QGroupBox('Status')
-lay = QVBoxLayout()
-
-sval2 = QTextEdit()
-sval2.setReadOnly(True)
-#### STATUS UPDATES ####
-sval2.append('System Initialized')
-#### STATUS UPDATES ####
-
-lay.addWidget(sval2)
-status2.setLayout(lay)
-
-# last buttons
-release2 = QPushButton("Release")
-
-
-
-
-## TAB LAYOUT ##
-
-# drop tab layout
-dlayout.addWidget(height,0,0)
-dlayout.addWidget(device,0,1)
-
-dlayout.addWidget(status,1,0,2,2)
-
-dlayout.addWidget(release,1,2)
-dlayout.addWidget(reset1,2,2)
-
-drop.setLayout(dlayout)
-
-
-# impact tab layout
-ilayout.addWidget(height2,0,0)
-ilayout.addWidget(force,0,1)
-ilayout.addWidget(units2,0,2)
-
-ilayout.addWidget(status2,1,0,2,2)
-
-ilayout.addWidget(release2,1,2)
-ilayout.addWidget(reset2,2,2)
-
-impact.setLayout(ilayout)
-
-
-
-
-## connect functionality ##
-
-# unit dropdown
-uval2.activated[str].connect(unitsChanged2)
-
-# reset buttons
-reset1.clicked.connect(resetPressed)
-reset2.clicked.connect(resetPressed2)
-
-# release buttons
-release.clicked.connect(releasePressed)
-release2.clicked.connect(releasePressed2)
-
-# height buttons
-hval.clicked.connect(raisePressed)
-hval2.clicked.connect(raisePressed2)
-
-# attach and set buttons
-attach.clicked.connect(itemSet)
-set.clicked.connect(itemSet2)
-
-
-# make tabs, add title
-window = QTabWidget()
-window.addTab(drop,'Drop')
-window.addTab(impact,'Impact')
-
-window.setWindowTitle(title)
-
-# start app
-window.show()
-app.exec()
-
-
-
-
-
+  /* APP SENDS */
+  // check if something is writing, give visual confirmation if read
+  if(!Serial.available() > 0){
+    char val = Serial.read();
+
+    digitalWrite(LED_BUILTIN,HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN,LOW);
+  }
+  
+  // decide if carriage goes up, down, or gets released
+  // Raise = 1, Release Actuators = 2, Release Carriage = 3, Item Hold Actuators = 4
+  // Recouple System = 5
+
+  // carry out functions
+  if(val == '1'){
+    x = "Raise";
+    
+    // raise until you hit the switch
+    stepper.setSpeed(500);
+    while (digitalRead(stop) == LOW){ // change the 'while' to whatever the switch pin is
+      stepper.runSpeed();
+      i++;
+    }
+
+    // drop a lil bit, then raise again slowly
+    stepper.setSpeed(-500); 
+    for (int i = 0;i<200;i++){
+      stepper.runSpeed();
+      i++;      
+    }
+
+    stepper.setSpeed(250);
+    while(i<200){ // change the 'while' to whatever the switch pin is
+      stepper.runSpeed();   
+      i++;         
+    }
+    stepper.setSpeed(0);
+    stepper.runSpeed();
+
+  }else if (val == '2'){
+    x = "Device Release";
+
+    // Retract linear actuators 
+    digitalWrite(40, HIGH);
+    digitalWrite(41, LOW);
+
+  }else if (val == '3'){
+    x = "Carriage Release";
+
+    // Retract linear actuator 
+    digitalWrite(50, HIGH);
+    digitalWrite(51, LOW);
+
+  }else if (val == '4'){
+    x = "Item Set";
+
+    unsigned long time;
+
+    // check which item it is
+    switch(Serial.parseInt()){
+      case 1:
+      time = phone;
+
+      case 2:
+      time = tablet;
+
+      case 3:
+      time = laptop;
+    }
+
+    // move actuators to the time they need
+    unsigned long start = millis();
+
+    // Extend linear actuators 
+    digitalWrite(40, LOW);
+    digitalWrite(41, HIGH);
+
+    // Stop linear actuators when they reach specific time
+    while (!start-millis() == time);
+    digitalWrite(40, HIGH);
+    digitalWrite(41, HIGH);
+
+  }else if (val == '5'){
+    x = "Recouple";
+
+    // Extend linear actuator, slowly turn wheel
+    unsigned long start = millis();
+
+    digitalWrite(50, LOW);
+    digitalWrite(51, HIGH); 
+
+    stepper.setSpeed(100);
+    stepper.runSpeed();    
+
+  }
+  
+  Serial.println(x);
+}
